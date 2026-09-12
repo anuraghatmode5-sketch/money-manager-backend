@@ -2,28 +2,41 @@ package in.anurag.moneymanager.Service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
+    @Value("${brevo.api.key}")
+    private String apiKey;
 
-    @Value("${spring.mail.properties.mail.smtp.from}")
+    @Value("${brevo.from.email}")
     private String fromEmail;
 
     public void sendEmail(String to, String subject, String body) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(body);
+            Map<String, Object> request = Map.of(
+                    "sender", Map.of("email", fromEmail),
+                    "to", List.of(Map.of("email", to)),
+                    "subject", subject,
+                    "textContent", body
+            );
 
-            mailSender.send(message);
+            RestClient.create()
+                    .post()
+                    .uri("https://api.brevo.com/v3/smtp/email")
+                    .header("api-key", apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .toBodilessEntity();
+
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
         }
