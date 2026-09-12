@@ -1,41 +1,91 @@
 package in.anurag.moneymanager.Service;
 
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.gmail.Gmail;
+import com.google.api.services.gmail.GmailScopes;
+import com.google.api.services.gmail.model.Message;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.UserCredentials;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
+import com.google.auth.oauth2.GoogleCredentials;
 
-import java.util.List;
-import java.util.Map;
+import java.io.ByteArrayOutputStream;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Properties;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    @Value("${brevo.api.key}")
-    private String apiKey;
+    @Value("${google.client.id}")
+    private String clientId;
 
-    @Value("${brevo.from.email}")
+    @Value("${google.client.secret}")
+    private String clientSecret;
+
+    @Value("${google.refresh.token}")
+    private String refreshToken;
+
+    @Value("${gmail.from.email}")
     private String fromEmail;
 
     public void sendEmail(String to, String subject, String body) {
         try {
-            Map<String, Object> request = Map.of(
-                    "sender", Map.of("email", fromEmail),
-                    "to", List.of(Map.of("email", to)),
-                    "subject", subject,
-                    "textContent", body
-            );
+            GoogleCredentials credentials =
+                    UserCredentials.newBuilder()
+                            .setClientId(clientId)
+                            .setClientSecret(clientSecret)
+                            .setRefreshToken(refreshToken)
+                            .build()
+                            .createScoped(
+                                    Collections.singleton(GmailScopes.GMAIL_SEND)
+                            );
 
-            RestClient.create()
-                    .post()
-                    .uri("https://api.brevo.com/v3/smtp/email")
-                    .header("api-key", apiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(request)
-                    .retrieve()
-                    .toBodilessEntity();
+            Gmail gmailService =
+                    new Gmail.Builder(
+                            GoogleNetHttpTransport.newTrustedTransport(),
+                            GsonFactory.getDefaultInstance(),
+                            new HttpCredentialsAdapter(credentials)
+                    )
+                            .setApplicationName("Money Manager")
+                            .build();
+
+            Properties properties = new Properties();
+            Session session = Session.getDefaultInstance(properties, null);
+
+            MimeMessage email = new MimeMessage(session);
+
+            email.setFrom(new InternetAddress(fromEmail));
+            email.setRecipient(
+                    RecipientType.TO,
+                    new InternetAddress(to)
+            );
+            email.setSubject(subject);
+            email.setText(body);
+
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            email.writeTo(buffer);
+
+            String encodedEmail =
+                    Base64.getUrlEncoder()
+                            .withoutPadding()
+                            .encodeToString(buffer.toByteArray());
+
+            Message message = new Message();
+            message.setRaw(encodedEmail);
+
+            gmailService.users()
+                    .messages()
+                    .send("me", message)
+                    .execute();
 
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
