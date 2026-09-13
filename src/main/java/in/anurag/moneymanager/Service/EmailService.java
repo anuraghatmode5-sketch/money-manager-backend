@@ -69,7 +69,7 @@ public class EmailService {
                     new InternetAddress(to)
             );
             email.setSubject(subject);
-            email.setText(body);
+            email.setContent(body, "text/html; charset=UTF-8");
 
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             email.writeTo(buffer);

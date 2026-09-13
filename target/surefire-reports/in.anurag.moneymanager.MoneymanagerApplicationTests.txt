@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: in.anurag.moneymanager.MoneymanagerApplicationTests
 -------------------------------------------------------------------------------
-Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.674 s -- in in.anurag.moneymanager.MoneymanagerApplicationTests
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.671 s -- in in.anurag.moneymanager.MoneymanagerApplicationTests
