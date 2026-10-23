@@ -124,7 +124,7 @@ Test the main workflows:
 
 ## 👨‍💻 Author
 
-**Anurag Hatmode**
+**Anurag Gajanan Hatmode**
 
 - GitHub: [@anuraghatmode5-sketch](https://github.com/anuraghatmode5-sketch)
 
